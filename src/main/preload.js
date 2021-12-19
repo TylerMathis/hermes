@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('electron', {
     setTimeLimit(limit) {
       ipcRenderer.send(CHANNELS.SET_TIME_LIMIT, limit);
     },
+    setAsynchrony(groupSize) {
+      ipcRenderer.send(CHANNELS.SET_ASYNCHRONY, groupSize);
+    },
     judge() {
       ipcRenderer.send(CHANNELS.JUDGE);
     },

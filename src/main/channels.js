@@ -1,8 +1,8 @@
 const CHANNELS = {
   SELECT_FILE: 'renderer-select-file',
   FILE_SELECTED: 'electron-file-selected',
-
   SET_TIME_LIMIT: 'renderer-set-time-limit',
+  SET_ASYNCHRONY: 'renderer-set-asynchrony',
 
   JUDGE: 'renderer-judge',
 

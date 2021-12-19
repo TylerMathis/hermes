@@ -11,6 +11,7 @@ declare global {
         removeListener: (listener: string, func: unknown) => void;
         setFile: (key: string, isDirectory: boolean) => void;
         setTimeLimit: (limit: number) => void;
+        setAsynchrony: (groupSize: number) => void;
         judge: () => void;
       };
     };

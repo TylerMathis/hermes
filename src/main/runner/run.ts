@@ -2,6 +2,8 @@ import { exec } from 'child_process';
 import path from 'path';
 import { getCachePath, getFileNameFromPath, LangType } from '../utils';
 
+export type RunReponseType = 'OK' | 'TLE' | 'RTE';
+
 // Run a binary. Resolves as runtime, or -1 if RTE
 const run = (
   binPath: string,
@@ -17,11 +19,11 @@ const run = (
     binPath
   )} ${lang} ${inputPath} ${outputPath} ${timeout}`;
 
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<RunReponseType>((resolve) => {
     exec(command, (_err, _stdout, stderr) => {
       // eslint-disable-next-line prefer-promise-reject-errors
-      if (stderr.includes('Cputime limit exceeded')) reject('TLE');
-      resolve();
+      if (stderr.includes('Cputime limit exceeded')) resolve('TLE');
+      resolve('OK');
     });
   });
 };

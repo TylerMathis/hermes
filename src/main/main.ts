@@ -17,7 +17,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import CHANNELS from './channels';
-import { selectFile, judge, setTimeLimit } from './runner/judge';
+import { selectFile, judge, setTimeLimit, setAsynchrony } from './runner/judge';
 import { clearCache, touchCache } from './utils';
 
 export default class AppUpdater {
@@ -33,6 +33,7 @@ let mainWindow: BrowserWindow | null = null;
 // Subscribe to events
 ipcMain.on(CHANNELS.SELECT_FILE, selectFile);
 ipcMain.on(CHANNELS.SET_TIME_LIMIT, setTimeLimit);
+ipcMain.on(CHANNELS.SET_ASYNCHRONY, setAsynchrony);
 ipcMain.on(CHANNELS.JUDGE, judge);
 
 // Clear our cache, and then make sure it exists

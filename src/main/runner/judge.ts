@@ -13,7 +13,7 @@ import {
 } from '../utils';
 import CHANNELS from '../channels';
 import compile from './compile';
-import run from './run';
+import run, { RunReponseType } from './run';
 
 // Store for the main thread. Get rid of old data
 const store = new Store();
@@ -40,20 +40,25 @@ export const selectFile = async (
 };
 
 // Set the time limit in the store
-export const setTimeLimit = async (
-  _event: Electron.IpcMainEvent,
-  limit: number
-) => {
+export const setTimeLimit = (_event: Electron.IpcMainEvent, limit: number) => {
   store.set('timeLimit', limit);
 };
 
+// Set the group size of our asynchronous execution
+export const setAsynchrony = (
+  _event: Electron.IpcMainEvent,
+  groupSize: number
+) => {
+  store.set('asynchrony', groupSize);
+};
+
 type VerdictType = 'AC' | 'PE' | 'WA' | 'TLE' | 'RTE' | 'INTERNAL_ERROR';
-type Response = {
+type ResponseType = {
   verdict: VerdictType;
   messages: Array<string>;
 };
 const check = (input: string, userOut: string, judgeOut: string) => {
-  return new Promise<Response>((resolve) => {
+  return new Promise<ResponseType>((resolve) => {
     exec(`python3 -m apollo ${input} ${userOut} ${judgeOut}`, (err, stdout) => {
       if (err)
         resolve({
@@ -147,46 +152,64 @@ export const judge = async (event: Electron.IpcMainEvent) => {
     };
   }, {});
 
-  for (let i = 0; i < inputs.length; i += 1) {
-    const input = inputs[i];
-    const inputId = getFileNameFromPath(input);
-    const inputPath = input.concat('.in');
-    const judgeOutputPath = input.concat('.out');
-    const userOutputPath = getCachePath(`${inputId}.userOut`);
+  const inputQueue = inputs.reverse();
+  const groupSize = store.get('asynchrony', 1) as number;
 
-    let response: Response = {
-      verdict: 'INTERNAL_ERROR',
-      messages: [],
-    };
+  while (inputQueue.length > 0) {
+    const idQueue: Array<string> = [];
+    const runQueue: Array<Promise<RunReponseType>> = [];
+    const checkQueue: Array<Promise<ResponseType>> = [];
 
-    try {
-      await run(compiledPath, lang, inputPath, userOutputPath, timeLimit);
-      response = await check(inputPath, userOutputPath, judgeOutputPath);
-    } catch (err) {
-      if (err === 'TLE') {
+    for (let i = 0; i < groupSize && inputQueue.length > 0; i += 1) {
+      const input = inputs.pop() as string;
+      const inputId = getFileNameFromPath(input);
+      const inputPath = input.concat('.in');
+      const judgeOutputPath = input.concat('.out');
+      const userOutputPath = getCachePath(`${inputId}.userOut`);
+
+      idQueue.push(inputId);
+      runQueue.push(
+        run(compiledPath, lang, inputPath, userOutputPath, timeLimit)
+      );
+      checkQueue.push(check(inputPath, userOutputPath, judgeOutputPath));
+    }
+
+    const runStatus = await Promise.all(runQueue);
+    const checkStatus = await Promise.all(checkQueue);
+
+    for (let i = 0; i < idQueue.length; i += 1) {
+      let response: ResponseType = {
+        verdict: 'INTERNAL_ERROR',
+        messages: [],
+      };
+
+      const inputId = idQueue[i];
+      const runRes = runStatus[i];
+      const checkRes = checkStatus[i];
+      if (runRes === 'TLE') {
         response = {
           verdict: 'TLE',
           messages: ['Exceeded cpuTime limit.'],
         };
-      } else if (err === 'RTE') {
+      } else if (runRes === 'RTE') {
         response = {
           verdict: 'RTE',
           messages: ['Runtime error.'],
         };
-      }
+      } else response = checkRes;
+
+      console.log({
+        Case: inputId,
+        Verdict: response,
+      });
+
+      results = {
+        ...results,
+        [inputId]: response,
+      };
+
+      event.reply(CHANNELS.CASE_JUDGED, results);
     }
-
-    console.log({
-      Case: inputId,
-      Verdict: response,
-    });
-
-    results = {
-      ...results,
-      [inputId]: response,
-    };
-
-    event.reply(CHANNELS.CASE_JUDGED, results);
   }
 
   event.reply(CHANNELS.DONE_JUDGING);

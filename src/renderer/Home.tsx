@@ -7,6 +7,7 @@ import NumberSelectionRow from './NumberSelectionRow';
 import eventHandler from './eventHandler';
 import JudgeButton from './JudgeButton';
 import Results from './Results';
+import AsynchronySliderRow from './AsynchronySliderRow';
 
 type FileData = {
   [K in FileKeyType]?: string;
@@ -43,6 +44,11 @@ export default function Home() {
   const onChangeTimeLimit = (limit: number) => {
     eventHandler.setTimeLimit(limit);
   };
+
+  const onChangeAsynchrony = (groupSize: number) => {
+    eventHandler.setAsynchrony(groupSize);
+  };
+
   return (
     <div
       style={{
@@ -71,6 +77,7 @@ export default function Home() {
           units="seconds"
           onChange={onChangeTimeLimit}
         />
+        <AsynchronySliderRow onChange={onChangeAsynchrony} />
         <JudgeButton />
         <Results />
       </Space>
